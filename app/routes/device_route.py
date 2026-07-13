@@ -1,120 +1,125 @@
 from datetime import datetime, timezone
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required
+import psycopg2
+from app.db.connection import get_db_connection
+from app.models.device_model import DeviceRequestBody
+from app.utils.decorators import validate_payload
 
-from app.db.connection import get_connection, release_connection
-from app.models.device_model import DeviceDTO
+device_bp = Blueprint('device', __name__)
 
-device_bp = Blueprint('device', __name__, url_prefix='/devices')
-
-@device_bp.route('', methods = ['GET'])
+@device_bp.route("", methods=["GET"])
 @jwt_required()
 def get_devices():
-    conn = None
-    cur = None
     try:
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute(
-            """
-            select id, device_name, device_info, device_id
-            from public.devices
-            """
-        )
-        devices = cur.fetchall()
-        
-        return jsonify(
-            {
+        with get_db_connection() as conn:
+            with conn.cursor as cur:
+                cur.execute(
+                    """
+                    SELECT id, device_name, device_info, device_id
+                    FROM public.devices
+                    """
+                )
+
+                devices = cur.fetchall()
+
+        return jsonify({
             "data": devices,
+            "message": "Devices retrieved successfully",
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "message": "Devices retrieved successfully"
-            }), 200
-    except Exception as e:
-        return jsonify({
-            'error': str(e)
-        }), 400
-        
-    finally:
-        if conn is not None:
-            release_connection(conn)
-        if cur is not None:
-            cur.close()
-            
-@device_bp.route('/<id>', methods=['PATCH'])
-@jwt_required()
-def update_device(id):
-    conn = None
-    cur = None
-    try:
-        device = DeviceDTO(**request.json)
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute(
-            """
-            update public.devices
-            set device_info = %s, is_disabled = %s
-            where id = %s
-            """
-        , (device.device_info, device.is_disabled, id))
-        conn.commit()
-        
-        return jsonify({
-            "message": "Device updated successfully for device id: " + id,
-            "timestamp": datetime.now(timezone.utc).isoformat()
         }), 200
-        
-    except Exception as e:
-        if conn is not None:
-            conn.rollback()
-        return jsonify({
-            'error': str(e)
-        }), 400
-        
-    finally:
-        if conn is not None:
-            release_connection(conn)
-        if cur is not None:
-            cur.close()
+
+    except psycopg2.Error:
+        current_app.logger.error("Database error occurred")
+        return jsonify({"error": "Database error occurred"}), 500
+
+    except Exception:
+        current_app.logger.error("Internal server error")
+        return jsonify({"error": "Internal server error"}), 500
             
-@device_bp.route('/<id>', methods=['DELETE'])
+@device_bp.route("/", methods=["PATCH"])
+@jwt_required(DeviceRequestBody)
+@validate_payload()
+def update_device(body: DeviceRequestBody):
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor as cur:
+                cur.execute(
+                    """
+                    UPDATE public.devices
+                    SET
+                        device_info = %s,
+                        is_disabled = %s
+                    WHERE id = %s
+                    """,
+                    (
+                        body.device_info,
+                        body.is_disabled,
+                        id,
+                    ),
+                )
+
+                conn.commit()
+
+        return jsonify({
+            "message": f"Device updated successfully for device id: {id}",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }), 200
+
+    except psycopg2.Error:
+        current_app.logger.error("Database error occurred")
+        return jsonify({"error": "Database error occurred"}), 500
+
+    except Exception:
+        current_app.logger.error("Internal server error")
+        return jsonify({"error": "Internal server error"}), 500
+            
+@device_bp.route("/<id>", methods=["DELETE"])
 @jwt_required()
 def delete_device(id):
-    conn = None
-    cur = None
     try:
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute(
-            """
-            update public.user_devices
-            set is_disabled = true
-            where id = %s
-            """, (id,)
-        )
-        cur.execute(
-            """
-            update refresh_tokens
-            set is_revoked = true
-            where device_id = %s and is_revoked = false
-            """, (id,)
-        )
-        conn.commit()
-        
+        with get_db_connection() as conn:
+            with conn.cursor as cur:
+                # Disable device
+                cur.execute(
+                    """
+                    UPDATE public.user_devices
+                    SET is_disabled = true
+                    WHERE id = %s
+                    """,
+                    (id,),
+                )
+
+                if cur.rowcount == 0:
+                    return jsonify({
+                        "message": "Device not found",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }), 404
+
+                # Revoke all active refresh tokens of the device
+                cur.execute(
+                    """
+                    UPDATE public.refresh_tokens
+                    SET is_revoked = true
+                    WHERE device_id = %s
+                      AND is_revoked = false
+                    """,
+                    (id,),
+                )
+
+                conn.commit()
+
         return jsonify({
-            "message": "Device disabled successfully for device id: " + id,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "message": f"Device disabled successfully for device id: {id}",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }), 200
-        
-    except Exception as e:
-        if conn is not None:
-            conn.rollback()
-        return jsonify({
-            'error': str(e)
-        }), 400
-        
-    finally:
-        if conn is not None:
-            release_connection(conn)
-        if cur is not None:
-            cur.close()
+
+    except psycopg2.Error:
+        current_app.logger.error("Database error occurred")
+        return jsonify({"error": "Database error occurred"}), 500
+
+    except Exception:
+        current_app.logger.error("Internal server error")
+        return jsonify({"error": "Internal server error"}), 500
