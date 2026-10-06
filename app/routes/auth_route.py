@@ -15,16 +15,26 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/register', methods=['POST'])
 @validate_payload(RegisterRequestBody)
 def register(body: RegisterRequestBody):
-    user = request.get_json(body)
-    bytes_password = user.password.encode('utf-8')
+    bytes_password = body.password.encode('utf-8')
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(bytes_password, salt).decode('utf-8')
     try:
         with get_db_connection() as conn:
-            with conn.cursor as cur:
+            with conn.cursor() as cur:
                 # Create user in database
-                cur.execute("INSERT INTO users (username, password_hash) VALUES (%s, %s)  RETURNING id", (user.username, hashed_password))
-                user_id = cur.fetchone()[0]
+                cur.execute(
+                    """
+                    INSERT INTO users (email, username, password_hash)
+                    VALUES (%(email)s, %(username)s, %(password_hash)s)
+                    RETURNING id
+                    """,
+                    {
+                        "email": body.email,
+                        "username": body.username,
+                        "password_hash": hashed_password,
+                    }
+                )
+                user_id = cur.fetchone()['id']
                 conn.commit()
         
         return jsonify({
@@ -33,121 +43,105 @@ def register(body: RegisterRequestBody):
             'timestamp': datetime.now(timezone.utc).isoformat()
             }), 201
     except psycopg2.Error as e:
-        current_app.logger.error("Database error occurred")
+        current_app.logger.error(f"Database error occurred: {e}")
         return jsonify({"error": "Database error occurred"}), 500
     except Exception as e:
-        current_app.logger.error("Internal server error")
+        current_app.logger.error(f"Internal server error: {e}")
+        # current_app.logger.error(f"Internal server error: {e}")
         return jsonify({"error": "Internal server error"}), 500
             
-@auth_bp.route("/login", methods=["POST"])
-@validate_payload(LoginRequestBody)
-def login(body: LoginRequestBody):
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor as cur:
-                # Fetch user
-                cur.execute(
-                    """
-                    SELECT id, username, password_hash
-                    FROM public.users
-                    WHERE username = %s
-                    """,
-                    (body.username,),
-                )
+# @auth_bp.route("/login", methods=["POST"])
+# @validate_payload(LoginRequestBody)
+# def login(body: LoginRequestBody):
+#     try:
+#         with get_db_connection() as conn:
+#             with conn.cursor() as cur:
+#                 # Fetch user
+#                 cur.execute(
+#                     """
+#                     SELECT id, email, password_hash
+#                     FROM public.users
+#                     WHERE username = %(email)s
+#                     """,
+#                     {"email": body.email},
+#                 )
 
-                user_db = cur.fetchone()
+#                 user_db = cur.fetchone()
 
-                if not user_db:
-                    return jsonify({
-                        "message": "User not found",
-                        "timestamp": datetime.now(timezone.utc).isoformat()
-                    }), 404
+#                 if not user_db:
+#                     return jsonify({
+#                         "message": "User not found",
+#                         "timestamp": datetime.now(timezone.utc).isoformat()
+#                     }), 404
 
-                user_id, username, password_hash = user_db
+#                 user_id, email, password_hash = user_db
 
-                # Verify password
-                if not bcrypt.checkpw(
-                    body.password.encode("utf-8"),
-                    password_hash.encode("utf-8"),
-                ):
-                    return jsonify({
-                        "message": "Password incorrect",
-                        "timestamp": datetime.now(timezone.utc).isoformat()
-                    }), 400
+#                 # Verify password
+#                 if not bcrypt.checkpw(
+#                     body.password.encode("utf-8"),
+#                     password_hash.encode("utf-8"),
+#                 ):
+#                     return jsonify({
+#                         "message": "Password incorrect",
+#                         "timestamp": datetime.now(timezone.utc).isoformat()
+#                     }), 400
 
-                # Generate tokens
-                access_token = create_access_token(identity=user_id)
-                refresh_token = create_refresh_token(identity=user_id)
-                hashed_refresh_token = hashlib.sha256(
-                    refresh_token.encode("utf-8")
-                ).hexdigest()
+#                 # Generate tokens
+#                 access_token = create_access_token(identity=user_id)
+#                 refresh_token = create_refresh_token(identity=user_id)
+#                 hashed_refresh_token = hashlib.sha256(
+#                     refresh_token.encode("utf-8")
+#                 ).hexdigest()
 
-                # Upsert user device
-                cur.execute(
-                    """
-                    INSERT INTO public.user_devices (id, user_id, device_info)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (id)
-                    DO UPDATE SET
-                        device_info = EXCLUDED.device_info
-                    WHERE user_devices.device_info IS DISTINCT FROM EXCLUDED.device_info
-                    """,
-                    (
-                        body.device_id,
-                        user_id,
-                        body.device_info,
-                    ),
-                )
+#                 # Revoke old refresh tokens
+#                 cur.execute(
+#                     """
+#                     UPDATE public.refresh_tokens
+#                     SET is_revoked = true
+#                     WHERE user_id = %s
+#                       AND device_id = %s
+#                       AND is_revoked = false
+#                     """,
+#                     (
+#                         user_id,
+#                         body.,
+#                     ),
+#                 )
 
-                # Revoke old refresh tokens
-                cur.execute(
-                    """
-                    UPDATE public.refresh_tokens
-                    SET is_revoked = true
-                    WHERE user_id = %s
-                      AND device_id = %s
-                      AND is_revoked = false
-                    """,
-                    (
-                        user_id,
-                        body.device_id,
-                    ),
-                )
+#                 # Save new refresh token
+#                 cur.execute(
+#                     """
+#                     INSERT INTO public.refresh_tokens
+#                         (user_id, device_id, token_hash, expires_at)
+#                     VALUES (%s, %s, %s, %s)
+#                     """,
+#                     (
+#                         user_id,
+#                         body.device_id,
+#                         hashed_refresh_token,
+#                         datetime.now(timezone.utc)
+#                         + timedelta(
+#                             seconds=int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES"))
+#                         ),
+#                     ),
+#                 )
 
-                # Save new refresh token
-                cur.execute(
-                    """
-                    INSERT INTO public.refresh_tokens
-                        (user_id, device_id, token_hash, expires_at)
-                    VALUES (%s, %s, %s, %s)
-                    """,
-                    (
-                        user_id,
-                        body.device_id,
-                        hashed_refresh_token,
-                        datetime.now(timezone.utc)
-                        + timedelta(
-                            seconds=int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES"))
-                        ),
-                    ),
-                )
+#                 conn.commit()
 
-                conn.commit()
+#         return jsonify({
+#             "message": f"Login success for user {email}",
+#             "access_token": access_token,
+#             "refresh_token": refresh_token,
+#             "timestamp": datetime.now(timezone.utc).isoformat(),
+#         }), 200
 
-        return jsonify({
-            "message": f"Login success for user {username}",
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }), 200
+#     except psycopg2.Error:
+#         current_app.logger.error("Database error occurred")
+#         return jsonify({"error": "Database error occurred"}), 500
 
-    except psycopg2.Error:
-        current_app.logger.error("Database error occurred")
-        return jsonify({"error": "Database error occurred"}), 500
-
-    except Exception:
-        current_app.logger.error("Internal server error")
-        return jsonify({"error": "Internal server error"}), 500
+#     except Exception:
+#         current_app.logger.error("Internal server error")
+#         return jsonify({"error": "Internal server error"}), 500
 
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)

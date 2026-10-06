@@ -49,7 +49,8 @@ def init_db_pool(app):
             keepalives_idle=30,
             keepalives_interval=10,
             keepalives_count=5,
-            options="-c statement_timeout=30000"
+            sslmode="require",
+            # options="-c statement_timeout=30000"
         )
         app.logger.info(f"Database connection pool initialized (min={minconn}, max={maxconn})")
     except Exception as e:

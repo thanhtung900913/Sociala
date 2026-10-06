@@ -1,4 +1,4 @@
-from extensions import jwt
+from app.utils.extensions import jwt
 BLOCKLIST = set()
 
 @jwt.token_in_blocklist_loader
