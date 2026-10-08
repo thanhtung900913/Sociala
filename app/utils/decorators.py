@@ -19,10 +19,25 @@ def validate_payload(model):
             except ValidationError as ve:
                 return jsonify({
                     "error": "Validation error",
-                    "details": ve.errors()
+                    "details": ve.errors(include_context=False)
                 }), 400
 
             return func(validated_data, *args, **kwargs)
 
+        return wrapper
+    return decorator
+
+def validate_query(model):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                query = model.model_validate(request.args.to_dict())
+            except ValidationError as error:
+                return jsonify({
+                    "error": "Validation error",
+                    "details": error.errors(include_context=False),
+                }), 400
+            return func(query, *args, **kwargs)
         return wrapper
     return decorator
