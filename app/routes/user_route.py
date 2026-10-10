@@ -9,7 +9,7 @@ from app.models.user_model import (
     DeleteUserRequestBody, SearchUsersQuery, UpdateProfileRequestBody,
     UpdateUserRequestBody, UserPageQuery,
 )
-from app.services import post_service, user_service
+from app.services import post_service, user_relation_service, user_service
 from app.services.errors import ServiceError
 from app.utils.decorators import validate_payload, validate_query
 from app.utils.validation import parse_user_id
@@ -83,3 +83,69 @@ def list_user_posts(query: UserPageQuery, user_id):
     user_id = parse_user_id(user_id)
     response = post_service.list_user_posts(get_jwt_identity(), user_id, query)
     return jsonify(response.model_dump(mode="json")), 200
+
+
+@user_bp.route("/me/friends", methods=["GET"])
+@jwt_required(locations=["headers", "cookies"])
+@validate_query(UserPageQuery)
+def list_friends(query: UserPageQuery):
+    response = user_relation_service.list_friends(get_jwt_identity(), query)
+    return jsonify(response.model_dump(mode="json")), 200
+
+
+@user_bp.route("/me/friends/<user_id>", methods=["DELETE"])
+@jwt_required(locations=["headers", "cookies"])
+def remove_friend(user_id):
+    user_id = parse_user_id(user_id)
+    user_relation_service.remove_friend(get_jwt_identity(), user_id)
+    return current_app.response_class(status=204)
+
+
+@user_bp.route("/me/blocks", methods=["GET"])
+@jwt_required(locations=["headers", "cookies"])
+@validate_query(UserPageQuery)
+def list_blocks(query: UserPageQuery):
+    response = user_relation_service.list_blocks(get_jwt_identity(), query)
+    return jsonify(response.model_dump(mode="json")), 200
+
+
+@user_bp.route("/me/blocks/<user_id>", methods=["PUT"])
+@jwt_required(locations=["headers", "cookies"])
+def block_user(user_id):
+    user_id = parse_user_id(user_id)
+    user_relation_service.block_user(get_jwt_identity(), user_id)
+    return current_app.response_class(status=204)
+
+
+@user_bp.route("/me/blocks/<user_id>", methods=["DELETE"])
+@jwt_required(locations=["headers", "cookies"])
+def unblock_user(user_id):
+    user_id = parse_user_id(user_id)
+    user_relation_service.unblock_user(get_jwt_identity(), user_id)
+    return current_app.response_class(status=204)
+
+
+@user_bp.route("/me/restrictions", methods=["GET"])
+@jwt_required(locations=["headers", "cookies"])
+@validate_query(UserPageQuery)
+def list_restrictions(query: UserPageQuery):
+    response = user_relation_service.list_restrictions(
+        get_jwt_identity(), query
+    )
+    return jsonify(response.model_dump(mode="json")), 200
+
+
+@user_bp.route("/me/restrictions/<user_id>", methods=["PUT"])
+@jwt_required(locations=["headers", "cookies"])
+def restrict_user(user_id):
+    user_id = parse_user_id(user_id)
+    user_relation_service.restrict_user(get_jwt_identity(), user_id)
+    return current_app.response_class(status=204)
+
+
+@user_bp.route("/me/restrictions/<user_id>", methods=["DELETE"])
+@jwt_required(locations=["headers", "cookies"])
+def unrestrict_user(user_id):
+    user_id = parse_user_id(user_id)
+    user_relation_service.unrestrict_user(get_jwt_identity(), user_id)
+    return current_app.response_class(status=204)

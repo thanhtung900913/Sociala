@@ -178,3 +178,27 @@ class PublicProfileResponseBody(ResponseBody):
 class UsersResponseBody(ResponseBody):
     data: list[UserSummaryResponseBody]
     pagination: PaginationResponseBody
+
+
+class UserRelationsCursor(UserPostsCursor):
+    """Position in a private list ordered by created_at and peer ID."""
+
+
+class FriendEntryResponseBody(ResponseBody):
+    user: UserSummaryResponseBody
+    friends_since: Timestamp
+
+
+class FriendsResponseBody(ResponseBody):
+    data: list[FriendEntryResponseBody]
+    pagination: PaginationResponseBody
+
+
+class UserRelationEntryResponseBody(ResponseBody):
+    user: UserSummaryResponseBody
+    created_at: Timestamp
+
+
+class UserRelationsResponseBody(ResponseBody):
+    data: list[UserRelationEntryResponseBody]
+    pagination: PaginationResponseBody

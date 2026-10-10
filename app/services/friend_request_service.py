@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from app.db.connection import get_db_connection_context
 from app.models.friend_request_model import (
     RespondFriendRequestBody, SendFriendRequestBody, FriendRequestsCursor,
@@ -7,34 +5,12 @@ from app.models.friend_request_model import (
 )
 from app.services import user_service
 from app.services.errors import ServiceError
+from app.services.relationship_lock import lock_relationship_pair
 from app.utils.pagination import decode_cursor, encode_cursor
 
 
 def _fail(code, message, status):
     raise ServiceError({"error": code, "message": message}, status)
-
-
-def lock_relationship_pair(cur, actor_id, peer_id):
-    """Lock a canonical pair, including pairs without a friendship row.
-
-    Other friend/block writers must acquire this same transaction-scoped lock
-    before reading or changing the pair.
-    """
-    actor_id, peer_id = str(UUID(str(actor_id))), str(UUID(str(peer_id)))
-    if actor_id == peer_id:
-        _fail(
-            "SELF_RELATION_NOT_ALLOWED",
-            "Cannot create a relationship with yourself", 422,
-        )
-    low_id, high_id = sorted((actor_id, peer_id))
-    cur.execute(
-        "SELECT pg_advisory_xact_lock(hashtextextended(%(pair_key)s, 0))",
-        {"pair_key": f"relationship:{low_id}:{high_id}"},
-    )
-    return {
-        "actor_id": actor_id, "peer_id": peer_id,
-        "low_id": low_id, "high_id": high_id,
-    }
 
 
 def _load_pair(cur, actor_id, peer_id):
