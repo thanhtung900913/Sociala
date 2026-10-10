@@ -15,3 +15,13 @@ class Config:
     DB_PASSWORD = os.getenv('DB_PASSWORD')
     JWT_BLOCKLIST_ENABLED = True
     JWT_TOKEN_LOCATION = ["headers"]
+    POST_ENABLED_REACTIONS = tuple(
+        value.strip() for value in
+        os.getenv(
+            "POST_ENABLED_REACTIONS", "LIKE,LOVE,HAHA,WOW,SAD,ANGRY"
+        ).split(",")
+        if value.strip()
+    )
+    COMMENT_REPLIES_ENABLED = (
+        os.getenv("COMMENT_REPLIES_ENABLED", "true").lower() == "true"
+    )
