@@ -11,7 +11,7 @@ from app.models.user_model import (
     UserPageQuery, UserPostsCursor, UserSummaryResponseBody,
 )
 
-ReactionType = Literal["LIKE", "LOVE", "HAHA", "WOW", "SAD", "ANGRY"]
+ReactionType = Literal["LIKE"]
 PostVisibility = Literal["PUBLIC", "FRIENDS", "PRIVATE"]
 
 

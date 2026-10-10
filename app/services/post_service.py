@@ -1,5 +1,3 @@
-from flask import current_app
-
 from app.db.connection import get_db_connection_context
 from app.models.post_model import (
     CreatePostRequestBody, PostMutationResponseBody, PostPageCursor,
@@ -13,7 +11,7 @@ from app.services.errors import ServiceError
 from app.services.media_service import visible_media
 from app.utils.pagination import decode_cursor, encode_cursor
 
-REACTION_TYPES = ("LIKE", "LOVE", "HAHA", "WOW", "SAD", "ANGRY")
+REACTION_TYPES = ("LIKE",)
 
 
 def _require_readable_post(cur, viewer_id, post_id, *, lock=True):
@@ -365,10 +363,6 @@ def list_shares(viewer_id, post_id, query: PostPageQuery) -> PostsResponseBody:
 def put_reaction(
     actor_id, post_id, body: PutReactionRequestBody
 ) -> ReactionStateResponseBody:
-    if body.reaction_type not in current_app.config.get(
-        "POST_ENABLED_REACTIONS", REACTION_TYPES
-    ):
-        raise ServiceError({"error": "REACTION_NOT_ENABLED"}, 422)
     with get_db_connection_context() as conn:
         with conn.cursor() as cur:
             post = _require_readable_post(cur, actor_id, post_id)
@@ -421,9 +415,6 @@ def list_reactions(
             _require_readable_post(cur, viewer_id, post_id, lock=False)
             params = _page_params(viewer_id, post_id, query, position)
             params["reaction_type"] = query.reaction_type
-            params["enabled_types"] = list(current_app.config.get(
-                "POST_ENABLED_REACTIONS", REACTION_TYPES
-            ))
             cur.execute(
                 """
                 SELECT r.user_id AS id, r.created_at, r.reaction_type,
@@ -438,7 +429,7 @@ def list_reactions(
                 LEFT JOIN public.media_assets avatar
                   ON avatar.id = profile.avatar_media_id
                 WHERE r.post_id = %(post_id)s
-                  AND r.reaction_type = ANY(%(enabled_types)s::text[])
+                  AND r.reaction_type = 'LIKE'
                   AND u.status = 'ACTIVE' AND u.deleted_at IS NULL
                   AND NOT EXISTS (
                       SELECT 1 FROM public.user_blocks b
@@ -551,6 +542,7 @@ def _load_posts(cur, viewer_id, post_ids):
         FROM public.post_reactions r
         JOIN public.users reactor ON reactor.id = r.user_id
         WHERE r.post_id = ANY(%(post_ids)s::uuid[])
+          AND r.reaction_type = 'LIKE'
           AND reactor.status = 'ACTIVE' AND reactor.deleted_at IS NULL
           AND NOT EXISTS (
               SELECT 1 FROM public.user_blocks b
