@@ -1,25 +1,30 @@
 from app.db.connection import get_db_connection_context
+from app.models.post_model import PostsResponseBody
 from app.models.user_model import UserPageQuery, UserPostsCursor
 from app.services import user_service
+from app.services.media_service import visible_media
 from app.utils.pagination import decode_cursor, encode_cursor
 
 REACTION_TYPES = ("LIKE", "LOVE", "HAHA", "WOW", "SAD", "ANGRY")
 
 
 def _load_posts(cur, viewer_id, post_ids):
-    """Load page posts and share originals in batches within the caller's snapshot."""
+    """Load posts and share originals in batches in the caller's snapshot."""
     params = {"viewer_id": viewer_id, "post_ids": post_ids}
     cur.execute(
         """
-        SELECT p.id, p.author_id, p.content, p.visibility, p.kind, p.shared_post_id,
+        SELECT p.id, p.author_id, p.content, p.visibility, p.kind,
+               p.shared_post_id,
                p.created_at, p.updated_at,
                u.username AS author_username,
-               COALESCE(profile.display_name, u.username) AS author_display_name,
+               COALESCE(profile.display_name, u.username)
+                   AS author_display_name,
                to_jsonb(avatar) AS author_avatar
         FROM public.posts p
         JOIN public.users u ON u.id = p.author_id
         LEFT JOIN public.user_profiles profile ON profile.user_id = u.id
-        LEFT JOIN public.media_assets avatar ON avatar.id = profile.avatar_media_id
+        LEFT JOIN public.media_assets avatar
+          ON avatar.id = profile.avatar_media_id
         WHERE p.id = ANY(%(post_ids)s::uuid[])
           AND public.can_view_post(p.id, %(viewer_id)s::uuid)
         """,
@@ -28,12 +33,11 @@ def _load_posts(cur, viewer_id, post_ids):
     posts = {}
     for row in cur.fetchall():
         post = {
-            field: row[field]
-            for field in ("id", "content", "visibility", "kind", "shared_post_id",
-                          "created_at", "updated_at")
-        }
-        post.update({
-            "author": user_service._serialize_user_summary({
+            **{name: row[name] for name in (
+                "id", "content", "visibility", "kind", "shared_post_id",
+                "created_at", "updated_at",
+            )},
+            "author": user_service.build_user_summary({
                 "id": row["author_id"],
                 "username": row["author_username"],
                 "display_name": row["author_display_name"],
@@ -46,7 +50,7 @@ def _load_posts(cur, viewer_id, post_ids):
             },
             "my_reaction": None,
             "original_post": None,
-        })
+        }
         posts[str(row["id"])] = post
 
     cur.execute(
@@ -57,7 +61,8 @@ def _load_posts(cur, viewer_id, post_ids):
         JOIN public.media_assets m ON m.id = a.media_id
         WHERE a.post_id = ANY(%(post_ids)s::uuid[])
           AND p.kind = 'ORIGINAL' AND a.position < 10
-          AND m.owner_id = p.author_id AND m.status = 'READY' AND m.deleted_at IS NULL
+          AND m.owner_id = p.author_id AND m.status = 'READY'
+          AND m.deleted_at IS NULL
           AND public.can_view_post(p.id, %(viewer_id)s::uuid)
         ORDER BY a.post_id, a.position
         """,
@@ -67,10 +72,11 @@ def _load_posts(cur, viewer_id, post_ids):
         post = posts.get(str(row["post_id"]))
         if post is None:
             continue
-        media = user_service._serialize_media(row["media"], post["author"]["id"])
+        media = visible_media(row["media"], post["author"]["id"])
         if media:
             post["attachments"].append({
-                "position": row["position"], "alt_text": row["alt_text"], "media": media,
+                "position": row["position"], "alt_text": row["alt_text"],
+                "media": media,
             })
 
     cur.execute(
@@ -108,12 +114,15 @@ def _load_posts(cur, viewer_id, post_ids):
           AND commenter.status = 'ACTIVE' AND commenter.deleted_at IS NULL
           AND NOT EXISTS (
               SELECT 1 FROM public.user_blocks b
-              WHERE (b.blocker_id = %(viewer_id)s AND b.blocked_id = c.author_id)
-                 OR (b.blocker_id = c.author_id AND b.blocked_id = %(viewer_id)s)
+              WHERE (b.blocker_id = %(viewer_id)s
+                     AND b.blocked_id = c.author_id)
+                 OR (b.blocker_id = c.author_id
+                     AND b.blocked_id = %(viewer_id)s)
           )
         GROUP BY c.post_id
         UNION ALL
-        SELECT s.shared_post_id AS post_id, 'shares' AS category, COUNT(*) AS count
+        SELECT s.shared_post_id AS post_id, 'shares' AS category,
+               COUNT(*) AS count
         FROM public.posts s
         WHERE s.shared_post_id = ANY(%(post_ids)s::uuid[]) AND s.kind = 'SHARE'
           AND public.can_view_post(s.id, %(viewer_id)s::uuid)
@@ -128,16 +137,20 @@ def _load_posts(cur, viewer_id, post_ids):
     return posts
 
 
-def list_user_posts(viewer_id, user_id, query: UserPageQuery):
-    """List readable profile posts, without applying the home feed's hidden-post filter."""
+def list_user_posts(
+    viewer_id, user_id, query: UserPageQuery
+) -> PostsResponseBody:
+    """List readable profile posts without the home feed's hidden filter."""
     filters = {"user_id": str(user_id)}
     position = decode_cursor(
         query.cursor, "user-posts", viewer_id, filters, UserPostsCursor
     )
     with get_db_connection_context() as conn:
         with conn.cursor() as cur:
-            # Keep page membership, originals and counts in one consistent read snapshot.
-            cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            # Keep page membership, originals and counts in one snapshot.
+            cur.execute(
+                "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY"
+            )
             user_service._get_public_profile(
                 cur, viewer_id, "u.id = %(user_id)s", {"user_id": user_id}
             )
@@ -150,14 +163,17 @@ def list_user_posts(viewer_id, user_id, query: UserPageQuery):
                   AND (
                       %(after_created_at)s::timestamptz IS NULL
                       OR (p.created_at, p.id) <
-                         (%(after_created_at)s::timestamptz, %(after_id)s::uuid)
+                         (%(after_created_at)s::timestamptz,
+                          %(after_id)s::uuid)
                   )
                 ORDER BY p.created_at DESC, p.id DESC
                 LIMIT %(fetch_limit)s
                 """,
                 {
                     "viewer_id": viewer_id, "user_id": user_id,
-                    "after_created_at": position.created_at if position else None,
+                    "after_created_at": (
+                        position.created_at if position else None
+                    ),
                     "after_id": str(position.id) if position else None,
                     "fetch_limit": query.limit + 1,
                 },
@@ -166,8 +182,10 @@ def list_user_posts(viewer_id, user_id, query: UserPageQuery):
             has_more = len(rows) > query.limit
             rows = rows[:query.limit]
             ids = {str(row["id"]) for row in rows}
-            ids.update(str(row["shared_post_id"]) for row in rows
-                       if row["kind"] == "SHARE" and row["shared_post_id"] is not None)
+            ids.update(
+                str(row["shared_post_id"]) for row in rows
+                if row["kind"] == "SHARE" and row["shared_post_id"] is not None
+            )
             posts = _load_posts(cur, viewer_id, sorted(ids)) if ids else {}
         conn.commit()
 
@@ -181,18 +199,22 @@ def list_user_posts(viewer_id, user_id, query: UserPageQuery):
             if original is None or original["kind"] != "ORIGINAL":
                 continue
             post["original_post"] = original
-        data.append(user_service._serialize(post))
+        data.append(post)
 
     next_cursor = None
     if has_more:
         last = rows[-1]
         next_cursor = encode_cursor(
             "user-posts", viewer_id, filters,
-            {"created_at": last["created_at"].isoformat(), "id": str(last["id"])},
+            {
+                "created_at": last["created_at"].isoformat(),
+                "id": str(last["id"]),
+            },
         )
-    return {
+    return PostsResponseBody.model_validate({
         "data": data,
         "pagination": {
-            "limit": query.limit, "has_more": has_more, "next_cursor": next_cursor,
+            "limit": query.limit, "has_more": has_more,
+            "next_cursor": next_cursor,
         },
-    }
+    })

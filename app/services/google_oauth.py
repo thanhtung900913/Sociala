@@ -1,4 +1,7 @@
 import os
+import re
+import secrets
+
 import requests
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
@@ -51,9 +54,6 @@ def verify_google_id_token(token):
         google_requests.Request(),
         os.getenv("GOOGLE_CLIENT_ID"),
     )
-
-import re
-import secrets
 
 
 def generate_username(email):

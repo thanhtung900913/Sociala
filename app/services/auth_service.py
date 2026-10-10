@@ -7,7 +7,10 @@ import bcrypt
 from flask_jwt_extended import create_access_token, create_refresh_token
 
 from app.db.connection import get_db_connection_context
-from app.models.auth_model import LoginRequestBody, RegisterRequestBody
+from app.models.auth_model import (
+    AccessTokenResponseBody, LoginRequestBody, LoginResponseBody,
+    LogoutResponseBody, RegisterRequestBody, RegisterResponseBody,
+)
 from app.services.errors import ServiceError
 from app.services.google_oauth import (
     exchange_google_code,
@@ -19,7 +22,8 @@ from app.services.google_oauth import (
 def _create_session(cur, user_id, user_agent, ip_address, expires_at):
     cur.execute(
         """
-        INSERT INTO public.auth_sessions (user_id, user_agent, ip_address, expires_at)
+        INSERT INTO public.auth_sessions
+            (user_id, user_agent, ip_address, expires_at)
         VALUES (%(user_id)s, %(user_agent)s, %(ip_address)s, %(expires_at)s)
         RETURNING id
         """,
@@ -41,13 +45,15 @@ def _save_refresh_token(cur, session_id, refresh_token, expires_at):
         """,
         {
             "session_id": session_id,
-            "token_hash": hashlib.sha256(refresh_token.encode("utf-8")).digest(),
+            "token_hash": hashlib.sha256(
+                refresh_token.encode("utf-8")
+            ).digest(),
             "expires_at": expires_at,
         },
     )
 
 
-def register_user(body: RegisterRequestBody):
+def register_user(body: RegisterRequestBody) -> RegisterResponseBody:
     """Register an account and return its identifier."""
     hashed_password = bcrypt.hashpw(
         body.password.encode("utf-8"), bcrypt.gensalt()
@@ -71,14 +77,15 @@ def register_user(body: RegisterRequestBody):
             user_id = cur.fetchone()["id"]
         conn.commit()
 
-    return {
-        "message": "User registered successfully",
-        "user_id": user_id,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
+    return RegisterResponseBody.model_validate({
+        "message": "User registered successfully", "user_id": user_id,
+        "timestamp": datetime.now(timezone.utc),
+    })
 
 
-def login_user(body: LoginRequestBody, user_agent=None, ip_address=None):
+def login_user(
+    body: LoginRequestBody, user_agent=None, ip_address=None
+) -> LoginResponseBody:
     """Verify credentials and create a session and tokens atomically."""
     now = datetime.now(timezone.utc)
 
@@ -95,7 +102,10 @@ def login_user(body: LoginRequestBody, user_agent=None, ip_address=None):
 
             if not user_db:
                 raise ServiceError(
-                    {"message": "Invalid email or password", "timestamp": now.isoformat()},
+                    {
+                        "message": "Invalid email or password",
+                        "timestamp": now.isoformat(),
+                    },
                     401,
                 )
 
@@ -106,9 +116,14 @@ def login_user(body: LoginRequestBody, user_agent=None, ip_address=None):
             )
 
             # 2. Verify password
-            if not bcrypt.checkpw(body.password.encode(), password_hash.encode()):
+            if not bcrypt.checkpw(
+                body.password.encode(), password_hash.encode()
+            ):
                 raise ServiceError(
-                    {"message": "Invalid email or password", "timestamp": now.isoformat()},
+                    {
+                        "message": "Invalid email or password",
+                        "timestamp": now.isoformat(),
+                    },
                     401,
                 )
 
@@ -132,23 +147,24 @@ def login_user(body: LoginRequestBody, user_agent=None, ip_address=None):
             )
 
             # 5. Save refresh token
-            _save_refresh_token(cur, session_id, refresh_token, session_expires_at)
+            _save_refresh_token(
+                cur, session_id, refresh_token, session_expires_at
+            )
 
         conn.commit()
 
-    return {
-        "message": "Login successful",
-        "user": {"id": str(user_id), "email": email},
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "session_id": str(session_id),
-        "expires_at": session_expires_at.isoformat(),
-        "timestamp": now.isoformat(),
-    }
+    return LoginResponseBody.model_validate({
+        "message": "Login successful", "user": {"id": user_id, "email": email},
+        "access_token": access_token, "refresh_token": refresh_token,
+        "session_id": session_id, "expires_at": session_expires_at,
+        "timestamp": now,
+    })
 
 
-def authenticate_google(code, user_agent=None, ip_address=None):
-    """Authenticate a Google account and persist its session and refresh token."""
+def authenticate_google(
+    code, user_agent=None, ip_address=None
+) -> tuple[AccessTokenResponseBody, str]:
+    """Authenticate Google and persist its session and refresh token."""
     token_data = exchange_google_code(code)
     google_claims = verify_google_id_token(token_data["id_token"])
 
@@ -261,10 +277,14 @@ def authenticate_google(code, user_agent=None, ip_address=None):
             refresh_token = secrets.token_urlsafe(64)
 
             refresh_expires_at = now + timedelta(
-                seconds=int(os.getenv("REFRESH_TOKEN_EXPIRES_SECONDS", 2592000))
+                seconds=int(os.getenv(
+                    "REFRESH_TOKEN_EXPIRES_SECONDS", 2592000
+                ))
             )
 
-            _save_refresh_token(cur, session_id, refresh_token, refresh_expires_at)
+            _save_refresh_token(
+                cur, session_id, refresh_token, refresh_expires_at
+            )
 
             access_token = create_access_token(
                 identity=str(user_id),
@@ -275,10 +295,11 @@ def authenticate_google(code, user_agent=None, ip_address=None):
 
         conn.commit()
 
-    return {"access_token": access_token, "refresh_token": refresh_token}
+    response = AccessTokenResponseBody(access_token=access_token)
+    return response, refresh_token
 
 
-def refresh_access_token(user_id, session_id):
+def refresh_access_token(user_id, session_id) -> AccessTokenResponseBody:
     """Issue an access token for a valid session."""
     with get_db_connection_context() as conn:
         with conn.cursor() as cur:
@@ -312,10 +333,10 @@ def refresh_access_token(user_id, session_id):
 
         conn.commit()
 
-    return {"access_token": access_token}
+    return AccessTokenResponseBody(access_token=access_token)
 
 
-def logout_user(user_id, session_id):
+def logout_user(user_id, session_id) -> LogoutResponseBody:
     """Revoke the authenticated session."""
     with get_db_connection_context() as conn:
         with conn.cursor() as cur:
@@ -331,10 +352,10 @@ def logout_user(user_id, session_id):
             )
         conn.commit()
 
-    return {"message": "logout successful"}
+    return LogoutResponseBody(message="logout successful")
 
 
-def is_session_active(user_id, session_id):
+def is_session_active(user_id, session_id) -> bool:
     """Check whether a session and its account still accept tokens."""
     with get_db_connection_context() as conn:
         with conn.cursor() as cur:
