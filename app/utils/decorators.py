@@ -1,6 +1,11 @@
 from functools import wraps
-from flask import request, jsonify
+
+from flask import request
 from pydantic import ValidationError
+
+from app.services.errors import ServiceError
+from app.utils.error_handlers import RequestValidationError
+
 
 def validate_payload(model):
     def decorator(func):
@@ -9,23 +14,20 @@ def validate_payload(model):
             payload = request.get_json(silent=True)
 
             if payload is None:
-                return jsonify({
-                    "error": "Invalid or missing JSON payload"
-                }), 400
+                raise ServiceError(
+                    {"error": "Invalid or missing JSON payload"}, 400
+                )
 
             try:
                 validated_data = model.model_validate(payload)
-
-            except ValidationError as ve:
-                return jsonify({
-                    "error": "Validation error",
-                    "details": ve.errors(include_context=False)
-                }), 400
+            except ValidationError as error:
+                raise RequestValidationError(error) from error
 
             return func(validated_data, *args, **kwargs)
 
         return wrapper
     return decorator
+
 
 def validate_query(model):
     def decorator(func):
@@ -34,10 +36,7 @@ def validate_query(model):
             try:
                 query = model.model_validate(request.args.to_dict())
             except ValidationError as error:
-                return jsonify({
-                    "error": "Validation error",
-                    "details": error.errors(include_context=False),
-                }), 400
+                raise RequestValidationError(error) from error
             return func(query, *args, **kwargs)
         return wrapper
     return decorator
