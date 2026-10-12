@@ -6,6 +6,7 @@ from app.routes.auth_route import auth_bp
 from app.routes.user_route import user_bp
 from app.routes.friend_request_route import friend_request_bp
 from app.routes.post_route import post_bp
+from app.routes.feed_route import feed_bp
 from app.config import Config
 from app.db.connection import init_db_pool
 from app.utils.error_handlers import register_error_handlers
@@ -26,6 +27,7 @@ app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
 app.register_blueprint(user_bp, url_prefix='/api/v1/users')
 app.register_blueprint(friend_request_bp, url_prefix='/api/v1/friend-requests')
 app.register_blueprint(post_bp, url_prefix='/api/v1/posts')
+app.register_blueprint(feed_bp, url_prefix='/api/v1/feed')
 
 
 if __name__ == '__main__':
