@@ -22,11 +22,14 @@ class AttachmentRequestBody(BaseModel):
     alt_text: str | None = Field(default=None, max_length=500)
 
 
-class SharePostRequestBody(BaseModel):
+class CreatePostRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     content: str | None = Field(default=None, min_length=1, max_length=10000)
     visibility: PostVisibility = "PUBLIC"
+    attachments: list[AttachmentRequestBody] = Field(
+        default_factory=list, max_length=10
+    )
 
     @field_validator("content")
     @classmethod
@@ -35,18 +38,20 @@ class SharePostRequestBody(BaseModel):
             raise ValueError("Content must not be blank")
         return value
 
-
-class CreatePostRequestBody(SharePostRequestBody):
-    attachments: list[AttachmentRequestBody] = Field(
-        default_factory=list, max_length=10
-    )
-
     @field_validator("attachments")
     @classmethod
     def require_unique_media(cls, value):
         if len({item.media_id for item in value}) != len(value):
             raise ValueError("Attachment media IDs must be unique")
         return value
+
+
+class SharePostRequestBody(CreatePostRequestBody):
+    # Share không cho phép đính kèm media mới.
+    attachments: list[AttachmentRequestBody] = Field(
+        default_factory=list, max_length=0
+    )
+
 
 
 class UpdatePostRequestBody(CreatePostRequestBody):

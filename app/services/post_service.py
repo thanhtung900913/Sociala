@@ -59,11 +59,15 @@ def _post_data(cur, viewer_id, post):
 
 
 def _validate_attachments(cur, actor_id, attachments):
+    """Lock valid attachments and return their media metadata by ID."""
+    media_by_id = {}
     # Stable lock order prevents opposite attachment orders from deadlocking.
     for item in sorted(attachments, key=lambda item: str(item.media_id)):
         cur.execute(
             """
-            SELECT id, status, content_type FROM public.media_assets
+            SELECT id, owner_id, status, content_type, byte_size,
+                   width, height, created_at, deleted_at
+            FROM public.media_assets
             WHERE id = %(media_id)s AND owner_id = %(actor_id)s
               AND deleted_at IS NULL
             FOR SHARE
@@ -79,6 +83,8 @@ def _validate_attachments(cur, actor_id, attachments):
             "image/jpeg", "image/png", "image/webp",
         }:
             raise ServiceError({"error": "INVALID_ATTACHMENT"}, 422)
+        media_by_id[str(item.media_id)] = media
+    return media_by_id
 
 
 def _insert_attachments(cur, post_id, attachments):
@@ -113,28 +119,81 @@ def _owned_post(cur, actor_id, post_id):
 
 
 def create_post(actor_id, body: CreatePostRequestBody) -> PostResponseBody:
+    """Create an original post and build its response in one transaction."""
     if body.content is None and not body.attachments:
         raise ServiceError({"error": "EMPTY_POST"}, 422)
     with get_db_connection_context() as conn:
         with conn.cursor() as cur:
-            _validate_attachments(cur, actor_id, body.attachments)
+            media_by_id = _validate_attachments(cur, actor_id, body.attachments)
             cur.execute(
                 """
-                INSERT INTO public.posts (author_id, content, visibility)
-                VALUES (%(actor_id)s, %(content)s, %(visibility)s)
-                RETURNING id
+                WITH new_post AS (
+                    INSERT INTO public.posts (author_id, content, visibility)
+                    VALUES (%(actor_id)s, %(content)s, %(visibility)s)
+                    RETURNING id, author_id, content, visibility, kind,
+                              shared_post_id, created_at, updated_at
+                )
+                SELECT p.id, p.author_id, p.content, p.visibility, p.kind,
+                       p.shared_post_id, p.created_at, p.updated_at,
+                       u.username AS author_username,
+                       COALESCE(profile.display_name, u.username)
+                           AS author_display_name,
+                       to_jsonb(avatar) AS author_avatar
+                FROM new_post p
+                JOIN public.users u ON u.id = p.author_id
+                LEFT JOIN public.user_profiles profile
+                  ON profile.user_id = u.id
+                LEFT JOIN public.media_assets avatar
+                  ON avatar.id = profile.avatar_media_id
+                WHERE u.status = 'ACTIVE' AND u.deleted_at IS NULL
                 """,
                 {
                     "actor_id": actor_id, "content": body.content,
                     "visibility": body.visibility,
                 },
             )
-            post_id = str(cur.fetchone()["id"])
+            post_db = cur.fetchone()
+            if post_db is None:
+                raise ServiceError({"error": "NOT_FOUND"}, 404)
+            post_id = str(post_db["id"])
             _insert_attachments(cur, post_id, body.attachments)
-            post = _require_readable_post(cur, actor_id, post_id)
-            data = _post_data(cur, actor_id, post)
+            post_fields = (
+                "id", "content", "visibility", "kind",
+                "shared_post_id", "created_at", "updated_at",
+            )
+
+            author = {
+                "id": post_db["author_id"],
+                "username": post_db["author_username"],
+                "display_name": post_db["author_display_name"],
+                "avatar_url": post_db["author_avatar"],
+            }
+
+            attachments = []
+            for position, item in enumerate(body.attachments):
+                media = media_by_id[str(item.media_id)]
+                attachments.append({
+                    "position": position,
+                    "alt_text": item.alt_text,
+                    "media": visible_media(media, post_db["author_id"]),
+                })
+
+            data = {field: post_db[field] for field in post_fields}
+            data.update(
+                author=author,
+                attachments=attachments,
+                counts={
+                    "reactions": 0,
+                    "comments": 0,
+                    "shares": 0,
+                    "by_reaction": dict.fromkeys(REACTION_TYPES, 0),
+                },
+                my_reaction=None,
+                original_post=None,
+            )
+            response = PostResponseBody.model_validate(data)
         conn.commit()
-    return PostResponseBody.model_validate(data)
+    return response
 
 
 def get_post(viewer_id, post_id) -> PostResponseBody:
