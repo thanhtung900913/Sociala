@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: autocart_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    # Cấu hình bắt buộc cho Debezium CDC
+    command: 
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"           # Cho phép ghi log ở mức độ logical để Debezium đọc được
+      - "-c"
+      - "max_replication_slots=4"     # Số lượng kết nối replication tối đa
+      - "-c"
+      - "max_wal_senders=4"           # Số lượng tiến trình gửi WAL tối đa
+    volumes:
+      - ./config/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./data:/var/lib/postgresql/data
+    networks:
+      - cdc_global_network
+
+networks:
+  cdc_global_network:
+    external: true # Kết nối vào mạng chung đã tạo cho Kafka/Debezium
