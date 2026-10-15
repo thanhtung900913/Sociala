@@ -1,0 +1,87 @@
+services:
+  # 1. Zookeeper: Quản lý cluster Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - ./data/zookeeper_data:/var/lib/zookeeper/data
+      - ./data/zookeeper_log:/var/lib/zookeeper/log
+    networks:
+      - cdc_global_network
+
+  # 2. Kafka Broker: Trái tim của hệ thống Message
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    volumes:
+      - ./data/kafka_data:/var/lib/kafka/data
+    networks:
+      - cdc_global_network
+
+  # 3. Debezium Connect: Worker lắng nghe DB và đẩy vào Kafka
+  debezium:
+    image: quay.io/debezium/connect:2.5
+    container_name: debezium_connect
+    restart: unless-stopped
+    depends_on:
+      - kafka
+    ports:
+      - "8083:8083"
+    environment:
+      # Trỏ tới cổng nội bộ 29092 của Kafka
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: debezium_configs
+      OFFSET_STORAGE_TOPIC: debezium_offsets
+      STATUS_STORAGE_TOPIC: debezium_statuses
+      # Định dạng dữ liệu đầu ra là JSON chuẩn (bỏ qua Schema để dữ liệu nhẹ hơn)
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+    networks:
+      - cdc_global_network
+
+  # 4. Kafka UI: Giao diện quản lý trực quan
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka_ui
+    restart: unless-stopped
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: cdc-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      # Tích hợp Debezium vào UI để bạn có thể thêm/sửa/xóa connector bằng giao diện thay vì gọi API
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: debezium
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://debezium:8083
+    networks:
+      - cdc_global_network
+
+volumes:
+  zookeeper_data:
+  zookeeper_log:
+  kafka_data:
+
+networks:
+  cdc_global_network:
+    external: true
