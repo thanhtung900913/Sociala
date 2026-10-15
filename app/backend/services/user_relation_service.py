@@ -1,12 +1,12 @@
-from app.db.connection import get_db_connection_context
-from app.models.user_model import (
+from app.backend.db.connection import get_db_connection_context
+from app.backend.models.user_model import (
     FriendsResponseBody, SearchUsersCursor, UserPageQuery,
     UserRelationsCursor, UserRelationsResponseBody,
 )
-from app.services import user_service
-from app.services.errors import ServiceError
-from app.services.relationship_lock import lock_relationship_pair
-from app.utils.pagination import decode_cursor, encode_cursor
+from app.backend.services import user_service
+from app.backend.services.errors import ServiceError
+from app.backend.services.relationship_lock import lock_relationship_pair
+from app.backend.utils.pagination import decode_cursor, encode_cursor
 
 
 def _check_actor(actor):

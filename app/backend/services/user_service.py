@@ -3,15 +3,15 @@ from uuid import UUID
 import bcrypt
 import psycopg2
 
-from app.db.connection import get_db_connection_context
-from app.models.user_model import (
+from app.backend.db.connection import get_db_connection_context
+from app.backend.models.user_model import (
     AccountResponseBody, DeleteUserRequestBody, ProfileResponseBody,
     PublicProfileResponseBody, SearchUsersCursor, SearchUsersQuery,
     UpdateProfileRequestBody, UpdateUserRequestBody, UsersResponseBody,
 )
-from app.services.errors import ServiceError
-from app.services.media_service import visible_media
-from app.utils.pagination import decode_cursor, encode_cursor
+from app.backend.services.errors import ServiceError
+from app.backend.services.media_service import visible_media
+from app.backend.utils.pagination import decode_cursor, encode_cursor
 
 
 def _get_account(cur, user_id) -> dict | None:

@@ -1,5 +1,5 @@
-from app.services.auth_service import is_session_active
-from app.utils.extensions import jwt
+from app.backend.services.auth_service import is_session_active
+from app.backend.utils.extensions import jwt
 
 BLOCKLIST = set()
 

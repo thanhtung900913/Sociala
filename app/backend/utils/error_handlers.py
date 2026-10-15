@@ -6,8 +6,8 @@ from flask import current_app, jsonify, request
 from pydantic import ValidationError
 from werkzeug.exceptions import HTTPException
 
-from app.models.common import ErrorResponseBody
-from app.services.errors import ServiceError
+from app.backend.models.common import ErrorResponseBody
+from app.backend.services.errors import ServiceError
 
 
 class RequestValidationError(Exception):

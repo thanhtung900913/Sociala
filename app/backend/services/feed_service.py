@@ -1,7 +1,7 @@
-from app.db.connection import get_db_connection_context
-from app.models.post_model import PostPageCursor, PostPageQuery, PostsResponseBody
-from app.services import post_service
-from app.utils.pagination import decode_cursor
+from app.backend.db.connection import get_db_connection_context
+from app.backend.models.post_model import PostPageCursor, PostPageQuery, PostsResponseBody
+from app.backend.services import post_service
+from app.backend.utils.pagination import decode_cursor
 
 
 def get_feed(viewer_id, query: PostPageQuery) -> PostsResponseBody:

@@ -5,9 +5,9 @@ from pydantic import (
     BaseModel, ConfigDict, Field, field_validator, model_validator,
 )
 
-from app.models.common import PaginationResponseBody, ResponseBody, Timestamp
-from app.models.media_model import MediaResponseBody
-from app.models.user_model import (
+from app.backend.models.common import PaginationResponseBody, ResponseBody, Timestamp
+from app.backend.models.media_model import MediaResponseBody
+from app.backend.models.user_model import (
     UserPageQuery, UserPostsCursor, UserSummaryResponseBody,
 )
 

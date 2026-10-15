@@ -8,10 +8,10 @@ from pydantic import (
     model_validator,
 )
 
-from app.models.common import (
+from app.backend.models.common import (
     PaginationResponseBody, ResponseBody, Timestamp,
 )
-from app.models.media_model import MediaResponseBody
+from app.backend.models.media_model import MediaResponseBody
 
 
 class UpdateUserRequestBody(BaseModel):

@@ -4,7 +4,7 @@ from flask import current_app
 from itsdangerous import BadData, URLSafeSerializer
 from pydantic import ValidationError
 
-from app.services.errors import ServiceError
+from app.backend.services.errors import ServiceError
 
 
 def _cursor_serializer():

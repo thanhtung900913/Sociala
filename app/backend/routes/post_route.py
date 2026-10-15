@@ -1,14 +1,15 @@
 from flask import Blueprint, current_app, jsonify
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
-from app.models.post_model import (
+from app.backend.models.post_model import (
     CreateCommentRequestBody, CreatePostRequestBody, PostPageQuery,
     PutReactionRequestBody, ReactionsQuery, SharePostRequestBody,
     UpdatePostRequestBody,
 )
-from app.services import comment_service, post_service
-from app.utils.decorators import validate_payload, validate_query
-from app.utils.validation import parse_post_id
+from app.backend.services import comment_service
+from app.backend.services import post_service
+from app.backend.utils.decorators import validate_payload, validate_query
+from app.backend.utils.validation import parse_post_id
 
 post_bp = Blueprint("post", __name__)
 

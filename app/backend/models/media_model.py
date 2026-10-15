@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from app.models.common import ResponseBody, Timestamp
+from app.backend.models.common import ResponseBody, Timestamp
 
 
 class MediaResponseBody(ResponseBody):

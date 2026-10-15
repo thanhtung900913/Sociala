@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from app.services.errors import ServiceError
+from app.backend.services.errors import ServiceError
 
 
 def lock_relationship_pair(cur, actor_id, peer_id):
