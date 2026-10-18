@@ -19,3 +19,8 @@ class Config:
     COMMENT_REPLIES_ENABLED = (
         os.getenv("COMMENT_REPLIES_ENABLED", "true").lower() == "true"
     )
+    # Must point to the same table/region as feed-worker.
+    AWS_REGION = os.getenv("AWS_REGION")
+    DYNAMODB_TABLE = os.getenv("DYNAMODB_TABLE", "user_feeds")
+    FEED_QUERY_PAGE_SIZE = int(os.getenv("FEED_QUERY_PAGE_SIZE", "100"))
+    FEED_MAX_QUERY_PAGES = int(os.getenv("FEED_MAX_QUERY_PAGES", "10"))

@@ -13,4 +13,6 @@ feed_bp = Blueprint("feed", __name__)
 @validate_query(PostPageQuery)
 def get_feed(query: PostPageQuery):
     response = feed_service.get_feed(get_jwt_identity(), query)
-    return jsonify(response.model_dump(mode="json")), 200
+    result = jsonify(response.model_dump(mode="json"))
+    result.headers["Cache-Control"] = "private, no-store"
+    return result, 200
