@@ -8,7 +8,7 @@ from app.backend.models.post_model import (
 from app.backend.models.user_model import UserPageQuery, UserPostsCursor
 from app.backend.services import user_service
 from app.backend.services.errors import ServiceError
-from app.backend.services.media_service import visible_media
+from app.backend.services.posts.media_service import visible_media
 from app.backend.utils.pagination import decode_cursor, encode_cursor
 
 REACTION_TYPES = ("LIKE",)

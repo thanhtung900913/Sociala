@@ -12,7 +12,7 @@ from app.backend.models.auth_model import (
     LogoutResponseBody, RegisterRequestBody, RegisterResponseBody,
 )
 from app.backend.services.errors import ServiceError
-from app.backend.services.google_oauth import (
+from app.backend.services.auth.google_oauth import (
     exchange_google_code,
     generate_username,
     verify_google_id_token,

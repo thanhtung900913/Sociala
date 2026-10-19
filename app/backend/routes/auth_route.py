@@ -5,9 +5,9 @@ from flask import Blueprint, jsonify, redirect, request, session
 from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
 
 from app.backend.models.auth_model import LoginRequestBody, RegisterRequestBody
-from app.backend.services import auth_service
+from app.backend.services.auth import auth_service
 from app.backend.services.errors import ServiceError
-from app.backend.services.google_oauth import build_google_authorization_url
+from app.backend.services.auth.google_oauth import build_google_authorization_url
 from app.backend.utils.decorators import validate_payload
 
 auth_bp = Blueprint("auth", __name__)

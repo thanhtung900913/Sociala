@@ -5,7 +5,7 @@ from app.backend.models.friend_request_model import (
 )
 from app.backend.services import user_service
 from app.backend.services.errors import ServiceError
-from app.backend.services.relationship_lock import lock_relationship_pair
+from app.backend.services.friendship.relationship_lock import lock_relationship_pair
 from app.backend.utils.pagination import decode_cursor, encode_cursor
 
 

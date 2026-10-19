@@ -10,7 +10,7 @@ from app.backend.models.user_model import (
     UpdateProfileRequestBody, UpdateUserRequestBody, UsersResponseBody,
 )
 from app.backend.services.errors import ServiceError
-from app.backend.services.media_service import visible_media
+from app.backend.services.posts.media_service import visible_media
 from app.backend.utils.pagination import decode_cursor, encode_cursor
 
 

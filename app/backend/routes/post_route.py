@@ -6,8 +6,8 @@ from app.backend.models.post_model import (
     PutReactionRequestBody, ReactionsQuery, SharePostRequestBody,
     UpdatePostRequestBody,
 )
-from app.backend.services import comment_service
-from app.backend.services import post_service
+from app.backend.services.posts import comment_service
+from app.backend.services.posts import post_service
 from app.backend.utils.decorators import validate_payload, validate_query
 from app.backend.utils.validation import parse_post_id
 

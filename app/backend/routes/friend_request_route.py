@@ -4,7 +4,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from app.backend.models.friend_request_model import (
     RespondFriendRequestBody, SendFriendRequestBody, FriendRequestsQuery,
 )
-from app.backend.services import friend_request_service
+from app.backend.services.friendship import friend_request_service
 from app.backend.utils.decorators import validate_payload, validate_query
 from app.backend.utils.validation import parse_user_id
 

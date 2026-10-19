@@ -7,7 +7,7 @@ from app.backend.db.feed_store import (
     FeedStoreError, get_feed_store, parse_sort_key, partition_key, sort_key,
 )
 from app.backend.models.post_model import PostPageCursor, PostPageQuery, PostsResponseBody
-from app.backend.services import post_service
+from app.backend.services.posts import post_service
 from app.backend.services.errors import ServiceError
 from app.backend.utils.pagination import decode_cursor, encode_cursor
 

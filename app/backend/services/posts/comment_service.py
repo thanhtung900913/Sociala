@@ -5,7 +5,7 @@ from app.backend.models.post_model import (
     CommentResponseBody, CommentsResponseBody, CreateCommentRequestBody,
     PostPageCursor, PostPageQuery,
 )
-from app.backend.services import post_service
+from app.backend.services.posts import post_service
 from app.backend.services import user_service
 from app.backend.services.errors import ServiceError
 from app.backend.utils.pagination import decode_cursor
