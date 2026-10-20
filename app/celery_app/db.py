@@ -9,7 +9,7 @@ import psycopg2
 from psycopg2.extensions import connection as PGConnection
 from psycopg2.extras import RealDictCursor
 
-from config import Config
+from app.celery_app.config import Config
 import redis as redis_lib
 
 

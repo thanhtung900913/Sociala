@@ -17,3 +17,11 @@ def parse_post_id(value):
         return str(UUID(value))
     except ValueError as error:
         raise ServiceError({"error": "Invalid post ID"}, 400) from error
+
+
+def parse_media_id(value):
+    """Normalize media path UUIDs before accessing storage or the database."""
+    try:
+        return str(UUID(value))
+    except ValueError as error:
+        raise ServiceError({"error": "Invalid media ID"}, 400) from error

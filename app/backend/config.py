@@ -26,3 +26,13 @@ class Config:
     FEED_MAX_QUERY_PAGES = int(os.getenv("FEED_MAX_QUERY_PAGES", "10"))
     MEDIA_BUCKET = os.getenv("MEDIA_BUCKET", "user-media")
     MEDIA_EXPIRES_IN = int(os.getenv("MEDIA_EXPIRES_IN", "600"))
+    STORAGE_PROVIDER = os.getenv("STORAGE_PROVIDER", "S3").upper()
+    S3_ENDPOINT_URL = os.getenv("S3_ENDPOINT_URL") or None
+    S3_ACCESS_KEY_ID = os.getenv("S3_ACCESS_KEY_ID") or None
+    S3_SECRET_ACCESS_KEY = os.getenv("S3_SECRET_ACCESS_KEY") or None
+    S3_REGION = os.getenv("S3_REGION") or AWS_REGION or "us-east-1"
+    S3_FORCE_PATH_STYLE = os.getenv("S3_FORCE_PATH_STYLE", "true").lower() == "true"
+    REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+    REDIS_BROKER_DB = int(os.getenv("REDIS_BROKER_DB", "2"))

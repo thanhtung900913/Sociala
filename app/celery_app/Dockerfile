@@ -33,7 +33,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     TZ=Asia/Ho_Chi_Minh \
-    PYTHONPATH=/app
+    PYTHONPATH=/srv
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tzdata \
@@ -45,16 +45,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN useradd -m -u 10001 appuser
 
-WORKDIR /app
+WORKDIR /srv
 
 COPY --from=builder /wheels /wheels
 COPY requirements.txt .
 RUN pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.txt \
     && rm -rf /wheels
 
-COPY --chown=appuser:appuser . /app/
+COPY --chown=appuser:appuser . /srv/app/celery_app/
 
 USER appuser
 
-CMD ["celery", "-A", "app:app", "worker", "--loglevel=info"]
+CMD ["celery", "-A", "app.celery_app.app:app", "worker", "--loglevel=info"]
 # CMD ["sleep", "infinity"]
