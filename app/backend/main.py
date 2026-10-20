@@ -7,6 +7,7 @@ from app.backend.routes.user_route import user_bp
 from app.backend.routes.friend_request_route import friend_request_bp
 from app.backend.routes.post_route import post_bp
 from app.backend.routes.feed_route import feed_bp
+from app.backend.routes.media_route import media_bp
 from app.backend.config import Config
 from app.backend.db.connection import init_db_pool
 from app.backend.utils.error_handlers import register_error_handlers
@@ -28,6 +29,7 @@ app.register_blueprint(user_bp, url_prefix='/api/v1/users')
 app.register_blueprint(friend_request_bp, url_prefix='/api/v1/friend-requests')
 app.register_blueprint(post_bp, url_prefix='/api/v1/posts')
 app.register_blueprint(feed_bp, url_prefix='/api/v1/feed')
+app.register_blueprint(media_bp, url_prefix='/api/v1/media')
 
 
 if __name__ == '__main__':

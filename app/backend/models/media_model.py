@@ -1,15 +1,25 @@
 from uuid import UUID
 
+from pydantic import BaseModel
+
 from app.backend.models.common import ResponseBody, Timestamp
 
-
-class MediaResponseBody(ResponseBody):
-    id: UUID
+class MediaUploadRequestBody(ResponseBody):
     content_type: str | None = None
     byte_size: int | None = None
     width: int | None = None
     height: int | None = None
-    status: str | None = None
-    created_at: Timestamp | None = None
-    download_url: str | None = None
-    url_expires_at: Timestamp | None = None
+
+class MediaUploadInfo(BaseModel):
+    url: str
+    method: str
+    headers: dict[str, str]
+    expires_in: int
+    
+class MediaUploadResponseBody(ResponseBody):
+    media_id: UUID
+    status: str
+    upload: MediaUploadInfo
+
+
+
