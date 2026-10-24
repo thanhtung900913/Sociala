@@ -1,0 +1,55 @@
+
+_format_version: "3.0"
+
+services:
+  - name: auth-service
+    url: http://auth-service:5000
+    routes:
+      - name: auth-public-route
+        paths:
+          - /auth/login
+          - /auth/register
+          - /auth/refresh
+        methods:
+          - POST
+        strip_path: false
+
+  - name: feed-service
+    url: http://feed-service:5000
+    routes:
+      - name: feed-route
+        paths:
+          - /feed
+        strip_path: false
+  
+  -name: media-upload-service
+    url: http://media-upload-service:5000
+    routes:
+      - name: media-upload-route
+        paths:
+          - /media/upload
+        strip_path: false
+
+consumers:
+  - username: flask-auth
+    jwt_secrets:
+      - key: my-auth-service
+        algorithm: HS256
+        secret: "${JWT_SECRET_KEY}"
+
+plugins:
+  - name: jwt
+    route:
+      name: feed-route
+    config:
+      key_claim_name: iss
+      claims_to_verify:
+        - exp
+
+  - name: jwt
+    route:
+      name: media-upload-route
+    config:
+      key_claim_name: iss
+      claims_to_verify:
+        - exp

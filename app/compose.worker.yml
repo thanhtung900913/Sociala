@@ -1,0 +1,21 @@
+# Overlay on the user's existing Compose file; do not replace Kafka services.
+services:
+  feed-worker:
+    build: ./feed-worker
+    restart: "on-failure:5"
+    init: true
+    env_file:
+      - ./feed-worker/.env
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      - kafka
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    stop_grace_period: 35s
+    networks:
+      - cdc_global_network
+
+networks:
+  cdc_global_network:
+    external: true
