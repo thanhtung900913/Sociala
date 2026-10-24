@@ -12,6 +12,7 @@ services:
       - db
 
 networks:
-  default:
-    external:
-      name: kong-net
+  kong-net:
+    external: true
+  sociala-postgres:
+    external: true
