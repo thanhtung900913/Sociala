@@ -1,5 +1,0 @@
-psycopg2
-pydantic==2.10.6
-celery[redis]
-boto3
-Pillow
