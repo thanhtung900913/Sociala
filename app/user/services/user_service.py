@@ -413,4 +413,3 @@ def update_current_profile(
             profile = account["profile"]
         conn.commit()
     return ProfileResponseBody.model_validate(profile)
-

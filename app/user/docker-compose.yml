@@ -1,0 +1,18 @@
+services:
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auth
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+networks:
+  kong-net:
+    external: true
+  sociala-postgres:
+    external: true
