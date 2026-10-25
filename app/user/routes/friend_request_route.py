@@ -1,12 +1,12 @@
 from flask import Blueprint, current_app, jsonify
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
-from app.backend.models.friend_request_model import (
+from app.user.models.friend_request_model import (
     RespondFriendRequestBody, SendFriendRequestBody, FriendRequestsQuery,
 )
-from app.backend.services.friendship import friend_request_service
-from app.backend.utils.decorators import validate_payload, validate_query
-from app.backend.utils.validation import parse_user_id
+from app.user.services.friendship import friend_request_service
+from app.user.utils.decorators import validate_payload, validate_query
+from app.user.utils.validation import parse_user_id
 
 friend_request_bp = Blueprint("friend_request", __name__)
 

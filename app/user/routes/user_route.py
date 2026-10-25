@@ -5,16 +5,16 @@ from flask_jwt_extended import (
     get_jwt_identity, jwt_required, unset_jwt_cookies,
 )
 
-from app.backend.models.user_model import (
+from app.user.models.user_model import (
     DeleteUserRequestBody, SearchUsersQuery, UpdateProfileRequestBody,
     UpdateUserRequestBody, UserPageQuery,
 )
-from app.backend.services.friendship import user_relation_service
-from app.backend.services import user_service
-from app.backend.services.errors import ServiceError
-from app.backend.services.posts import post_service
-from app.backend.utils.decorators import validate_payload, validate_query
-from app.backend.utils.validation import parse_user_id
+from app.user.services.friendship import user_relation_service
+from app.user.services import user_service
+from app.user.services.errors import ServiceError
+from app.feed.services import post_service
+from app.user.utils.decorators import validate_payload, validate_query
+from app.user.utils.validation import parse_user_id
 
 user_bp = Blueprint("user", __name__)
 

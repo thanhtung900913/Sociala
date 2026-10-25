@@ -5,10 +5,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from app.backend.models.common import (
+from app.user.models.common import (
     PaginationResponseBody, ResponseBody, Timestamp,
 )
-from app.backend.models.user_model import UserPageQuery, UserSummaryResponseBody
+from app.user.models.user_model import UserPageQuery, UserSummaryResponseBody
 
 
 class SendFriendRequestBody(BaseModel):

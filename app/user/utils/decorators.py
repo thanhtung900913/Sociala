@@ -3,8 +3,8 @@ from functools import wraps
 from flask import request
 from pydantic import ValidationError
 
-from app.backend.services.errors import ServiceError
-from app.backend.utils.error_handlers import RequestValidationError
+from app.user.services.errors import ServiceError
+from app.user.utils.error_handlers import RequestValidationError
 
 
 def validate_payload(model):
