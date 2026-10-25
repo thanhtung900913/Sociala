@@ -5,15 +5,28 @@ from pydantic import (
     BaseModel, ConfigDict, Field, field_validator, model_validator,
 )
 
-from app.backend.models.common import PaginationResponseBody, ResponseBody, Timestamp
-from app.backend.models.media_model import MediaResponseBody
-from app.backend.models.user_model import (
-    UserPageQuery, UserPostsCursor, UserSummaryResponseBody,
-)
+from app.feed.models.common import PaginationResponseBody, ResponseBody, Timestamp
 
 ReactionType = Literal["LIKE"]
 PostVisibility = Literal["PUBLIC", "FRIENDS", "PRIVATE"]
+MediaStatus = Literal["UPLOADING", "PROCESSING", "READY", "FAILED", "DELETED"]
 
+class MediaResponseBody(ResponseBody):
+    id: UUID
+    content_type: str
+    byte_size: int
+    width: int | None
+    height: int | None
+    status: MediaStatus
+    created_at: Timestamp
+    download_url: str | None = None
+    url_expires_at: Timestamp | None = None
+
+class UserSummaryResponseBody(ResponseBody):
+    id: UUID
+    username: str
+    display_name: str
+    avatar_url: str | None
 
 class AttachmentRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")

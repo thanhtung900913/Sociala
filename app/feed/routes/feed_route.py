@@ -1,9 +1,9 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
-from app.backend.models.post_model import PostPageQuery
-from app.backend.services import feed_service
-from app.backend.utils.decorators import validate_query
+from app.feed.models.post_model import PostPageQuery
+from app.feed.services import feed_service
+from app.feed.utils.decorators import validate_query
 
 feed_bp = Blueprint("feed", __name__)
 

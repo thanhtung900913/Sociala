@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from app.backend.services.errors import ServiceError
+from app.feed.services.errors import ServiceError
 
 
 def parse_user_id(value):

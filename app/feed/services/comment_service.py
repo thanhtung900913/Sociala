@@ -1,14 +1,14 @@
 from flask import current_app
 
-from app.backend.db.connection import get_db_connection_context
-from app.backend.models.post_model import (
+from app.feed.db.connection import get_db_connection_context
+from app.feed.models.post_model import (
     CommentResponseBody, CommentsResponseBody, CreateCommentRequestBody,
     PostPageCursor, PostPageQuery,
 )
-from app.backend.services.posts import post_service
-from app.backend.services import user_service
-from app.backend.services.errors import ServiceError
-from app.backend.utils.pagination import decode_cursor
+from app.feed.services import post_service
+from app.feed.services import user_service
+from app.feed.services.errors import ServiceError
+from app.feed.utils.pagination import decode_cursor
 
 
 # The same actor policy is used for membership, tombstones and reply counts.

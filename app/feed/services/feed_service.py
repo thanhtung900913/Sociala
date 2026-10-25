@@ -2,14 +2,14 @@ from datetime import datetime, timezone
 
 from flask import current_app
 
-from app.backend.db.connection import get_db_connection_context
-from app.backend.db.feed_store import (
+from app.feed.db.connection import get_db_connection_context
+from app.feed.db.feed_store import (
     FeedStoreError, get_feed_store, parse_sort_key, partition_key, sort_key,
 )
-from app.backend.models.post_model import PostPageCursor, PostPageQuery, PostsResponseBody
-from app.backend.services.posts import post_service
-from app.backend.services.errors import ServiceError
-from app.backend.utils.pagination import decode_cursor, encode_cursor
+from app.feed.models.post_model import PostPageCursor, PostPageQuery, PostsResponseBody
+from app.feed.services import post_service
+from app.feed.services.errors import ServiceError
+from app.feed.utils.pagination import decode_cursor, encode_cursor
 
 
 CURSOR_FILTERS = {"source": "dynamodb-v1"}

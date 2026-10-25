@@ -1,15 +1,15 @@
-from app.backend.db.connection import get_db_connection_context
-from app.backend.models.post_model import (
+from app.feed.db.connection import get_db_connection_context
+from app.feed.models.post_model import (
     CreatePostRequestBody, PostMutationResponseBody, PostPageCursor,
     PostPageQuery, PostResponseBody, PostsResponseBody, PutReactionRequestBody,
     ReactionStateResponseBody, ReactionsQuery, ReactionsResponseBody,
     SharePostRequestBody, UpdatePostRequestBody,
 )
-from app.backend.models.user_model import UserPageQuery, UserPostsCursor
-from app.backend.services import user_service
-from app.backend.services.errors import ServiceError
-from app.backend.services.posts.media_service import visible_media
-from app.backend.utils.pagination import decode_cursor, encode_cursor
+from app.user.models.user_model import UserPageQuery, UserPostsCursor
+from app.feed.services import user_service
+from app.feed.services.errors import ServiceError
+from app.feed.services.posts.media_service import visible_media
+from app.feed.utils.pagination import decode_cursor, encode_cursor
 
 REACTION_TYPES = ("LIKE",)
 
