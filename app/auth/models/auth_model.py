@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from app.backend.models.common import ResponseBody, Timestamp
+from app.auth.models.common import ResponseBody, Timestamp
 
 
 class RegisterRequestBody(BaseModel):

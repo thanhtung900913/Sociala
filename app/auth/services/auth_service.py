@@ -6,13 +6,13 @@ import secrets
 import bcrypt
 from flask_jwt_extended import create_access_token, create_refresh_token
 
-from app.backend.db.connection import get_db_connection_context
-from app.backend.models.auth_model import (
+from app.auth.db.connection import get_db_connection_context
+from app.auth.models.auth_model import (
     AccessTokenResponseBody, LoginRequestBody, LoginResponseBody,
     LogoutResponseBody, RegisterRequestBody, RegisterResponseBody,
 )
-from app.backend.services.errors import ServiceError
-from app.backend.services.auth.google_oauth import (
+from app.auth.services.errors import ServiceError
+from app.auth.services.google_oauth import (
     exchange_google_code,
     generate_username,
     verify_google_id_token,
