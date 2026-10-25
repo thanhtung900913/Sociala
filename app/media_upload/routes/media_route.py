@@ -1,10 +1,10 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
-from app.backend.models.media_model import MediaUploadRequestBody
-from app.backend.services.media import media_service
-from app.backend.utils.decorators import validate_payload
-from app.backend.utils.validation import parse_media_id
+from app.media_upload.models.media_model import MediaUploadRequestBody
+from app.media_upload.services import media_service
+from app.media_upload.utils.decorators import validate_payload
+from app.media_upload.utils.validation import parse_media_id
 
 
 media_bp = Blueprint('media', __name__)

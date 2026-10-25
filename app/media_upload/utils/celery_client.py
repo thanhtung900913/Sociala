@@ -3,7 +3,7 @@ from urllib.parse import quote
 from celery import Celery
 from flask import current_app
 
-from app.backend.config import Config
+from app.media_upload.config import Config
 
 
 def build_redis_url(host: str, port: int, password: str | None, db: int) -> str:

@@ -3,7 +3,7 @@ from functools import lru_cache
 import boto3
 from botocore.config import Config
 
-from app.backend.config import Config as AppConfig
+from app.media_upload.config import Config as AppConfig
 
 
 @lru_cache(maxsize=1)

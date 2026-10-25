@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.backend.models.common import ResponseBody, Timestamp
+from app.media_upload.models.common import ResponseBody, Timestamp
 
 MediaStatus = Literal["UPLOADING", "PROCESSING", "READY", "FAILED", "DELETED"]
 

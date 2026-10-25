@@ -5,17 +5,17 @@ from botocore.exceptions import BotoCoreError, ClientError
 from flask import current_app
 from kombu.exceptions import OperationalError
 
-from app.backend.config import Config
-from app.backend.db.connection import get_db_connection_context
-from app.backend.models.media_model import (
+from app.media_upload.config import Config
+from app.media_upload.db.connection import get_db_connection_context
+from app.media_upload.models.media_model import (
     MediaCompleteResponseBody,
     MediaUploadInfo,
     MediaUploadRequestBody,
     MediaUploadResponseBody,
 )
-from app.backend.services.errors import ServiceError
-from app.backend.services.media.s3 import generate_upload_url, get_object_metadata
-from app.backend.utils.celery_client import get_celery_client
+from app.media_upload.services.errors import ServiceError
+from app.media_upload.utils.s3 import generate_upload_url, get_object_metadata
+from app.media_upload.utils.celery_client import get_celery_client
 
 
 def upload_media(owner_id: UUID | str, body: MediaUploadRequestBody) -> MediaUploadResponseBody:
